@@ -50,13 +50,35 @@ type RaftLog struct {
 	pendingSnapshot *pb.Snapshot
 
 	// Your Data Here (2A).
+	firstIndex uint64
 }
 
 // newLog returns log using the given storage. It recovers the log
 // to the state that it just commits and applies the latest snapshot.
 func newLog(storage Storage) *RaftLog {
 	// Your Code Here (2A).
-	return nil
+	hardState, _, err := storage.InitialState()
+	if err != nil {
+		panic(err)
+	}
+	lo, _ := storage.FirstIndex()
+	hi, _ := storage.LastIndex()
+	ents := make([]pb.Entry, 0)
+	if lo <= hi {
+		ents, err = storage.Entries(lo, hi+1)
+		if err != nil {
+			panic(err)
+		}
+	}
+	return &RaftLog{
+		storage: storage,
+		committed: hardState.Commit,
+		applied: lo - 1,
+		stabled: hi,
+		entries: ents,
+		firstIndex: lo,
+	}
+
 }
 
 // We need to compact the log entries in some point of time like
@@ -96,4 +118,27 @@ func (l *RaftLog) LastIndex() uint64 {
 func (l *RaftLog) Term(i uint64) (uint64, error) {
 	// Your Code Here (2A).
 	return 0, nil
+}
+
+// Entries returns a slice of log entries in the range [lo,hi).
+// MaxSize limits the total size of the log entries returned, but
+// Entries returns at least one entry if any.
+func (l *RaftLog) Entries(lo, hi uint64) ([]pb.Entry, error){
+	return nil,nil
+}
+
+
+//appenEntries Append entries to raft log
+func (l *RaftLog) appendEntries(entries ...pb.Entry){
+
+}
+
+//removeEntriesAfter remove entries from index lo to the last
+func (l *RaftLog) removeEntriesAfter(lo uint64){
+	l.stabled = min(l.stabled, lo-1)
+	if lo - l.firstIndex >= uint64(len(l.entries)){
+		return
+	}
+	l.entries = l.entries[:lo-l.firstIndex]
+	
 }
